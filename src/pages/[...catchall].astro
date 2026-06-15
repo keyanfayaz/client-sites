@@ -1,0 +1,82 @@
+---
+import ClientLayout from '../layouts/ClientLayout.astro';
+import { getCollection } from 'astro:content';
+import { clients } from '../lib/clients';
+import { buildNavigation } from '../lib/navigation';
+
+const clientSlug = Astro.locals.clientSlug;
+const unknownClient = Astro.locals.unknownClient;
+const userEmail = Astro.locals.userEmail ?? null;
+
+if (!clientSlug) {
+  // No client (apex or www) — send to landing page
+  return Astro.redirect('/');
+}
+
+const client = clients[clientSlug];
+
+if (!client || unknownClient) {
+  Astro.response.status = 404;
+}
+
+const requestPath = (Astro.params.catchall ?? '').replace(/\/$/, '');
+
+const entries = await getCollection('clientPages', (e) => e.id.startsWith(`${clientSlug}/`));
+
+function stripExt(id: string) {
+  return id.replace(/\.(md|mdx)$/, '');
+}
+
+// Build path to look for in content collection
+let targetPath;
+if (requestPath) {
+  targetPath = `${clientSlug}/${requestPath}`;
+} else {
+  targetPath = `${clientSlug}/index`;
+}
+
+// Find the entry that matches our target path
+const entry = entries.find((e) => stripExt(e.id) === targetPath);
+
+if (!entry) {
+  Astro.response.status = 404;
+}
+
+const nav = buildNavigation(entries, clientSlug);
+
+const pageTitle = entry ? entry.data.title : 'Not found';
+const pageDescription = entry?.data.description ?? null;
+const { Content } = entry ? await entry.render() : { Content: undefined } as any;
+---
+
+{client ? (
+  <ClientLayout client={{ ...client, nav }} userEmail={userEmail} title={pageTitle}>
+    {entry ? (
+      <>
+        <section class="page-header">
+          <h1 class="page-title">{pageTitle}</h1>
+          {pageDescription && <p class="page-description">{pageDescription}</p>}
+        </section>
+        <article class="prose-content">
+          <Content />
+        </article>
+      </>
+    ) : (
+      <div class="prose-content">
+        <h1>Not found</h1>
+        <p>We couldn’t find this page for client <strong>{clientSlug}</strong>.</p>
+      </div>
+    )}
+  </ClientLayout>
+) : (
+  <html><body>
+    <main class="mx-auto max-w-3xl p-6">
+      <h1 class="mb-2 text-2xl font-bold">Unknown client</h1>
+      <p>
+        The client <strong>{clientSlug}</strong> is not configured. If this is a preview or new client,
+        ensure content exists in <code>/content/clients/{clientSlug}</code> and the registry includes it.
+      </p>
+    </main>
+  </body></html>
+)}
+

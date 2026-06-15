@@ -1,0 +1,99 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #0ea5e9;
+  --color-accent: #a855f7;
+}
+
+.theme {
+  --color-primary: var(--color-primary);
+  --color-accent: var(--color-accent);
+}
+
+.btn-primary {
+  @apply inline-flex items-center rounded-md bg-[color:var(--color-primary)] px-4 py-2 font-medium text-white hover:opacity-90 shadow;
+}
+
+.tag {
+  @apply inline-block rounded bg-gray-200 px-2 py-0.5 text-xs text-gray-700;
+}
+
+/* Improve markdown/MDX typography */
+.prose-content {
+  @apply prose prose-slate max-w-none prose-headings:scroll-mt-24 prose-h1:text-3xl prose-h1:font-semibold prose-h2:text-2xl prose-h2:mt-8 prose-h3:mt-6 prose-a:text-[color:var(--color-primary)] hover:prose-a:opacity-80 prose-strong:text-gray-900 prose-li:my-1;
+}
+
+/* Enhanced prose styles for visual appeal */
+.prose-content h1,
+.prose-content h2,
+.prose-content h3 {
+  color: var(--color-primary);
+}
+
+.prose-content ul > li::marker {
+  color: var(--color-accent);
+}
+
+/* Styles for expanding/collapsing sections */
+.prose-content details {
+  @apply mb-6 rounded-lg border bg-white shadow-sm;
+}
+
+.prose-content summary {
+  @apply cursor-pointer p-4 font-semibold text-[color:var(--color-primary)] list-none;
+}
+
+.prose-content details[open] > summary {
+  @apply border-b;
+}
+
+.prose-content details .accordion-content {
+  @apply px-4 py-2;
+}
+
+/* Chevron indicator on accordion summaries */
+.prose-content summary {
+  position: relative;
+  padding-left: 2rem; /* space for the chevron inside */
+}
+
+.prose-content summary::before {
+  content: "▸";
+  position: absolute;
+  left: 0.5rem; /* inside the tile, not outside */
+  top: 50%;
+  transform: translateY(-50%);
+  color: currentColor;
+  opacity: 0.7;
+  font-size: 1.25rem;
+  transition: transform 150ms ease, opacity 150ms ease;
+}
+
+.prose-content details[open] > summary::before {
+  content: "▾";
+  opacity: 0.9;
+  transform: translateY(-50%);
+}
+
+/* Nested details styling */
+/* .prose-content details details {
+  @apply mb-3 border-l-4 border-l-[color:var(--color-accent)] shadow-none;
+} */
+
+.prose-content details details summary {
+  @apply text-base;
+}
+
+/* Page header block for title/description */
+.page-header {
+  @apply mb-8 rounded-lg border bg-white/60 p-6 shadow-sm;
+}
+.page-title {
+  @apply text-3xl font-semibold tracking-tight;
+}
+.page-description {
+  @apply mt-1 text-gray-600;
+}
+

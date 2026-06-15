@@ -1,0 +1,12 @@
+/*
+X-Content-Type-Options: nosniff
+Referrer-Policy: no-referrer-when-downgrade
+Strict-Transport-Security: max-age=15552000; includeSubDomains; preload
+Permissions-Policy: geolocation=(), microphone=(), camera=()
+
+/*.md
+Content-Type: text/markdown; charset=utf-8
+
+/*
+Cache-Control: no-cache
+

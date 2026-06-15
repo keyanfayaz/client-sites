@@ -1,0 +1,70 @@
+{
+  "name": "multi-client-astro-cloudflare",
+  "version": "0.1.0",
+  "description": "A multi-tenant Astro framework for hosting multiple client sites with hostname-based routing",
+  "type": "module",
+  "author": "Multi-Client Astro Contributors",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/keyanfayaz/client-sites.git"
+  },
+  "bugs": {
+    "url": "https://github.com/keyanfayaz/client-sites/issues"
+  },
+  "homepage": "https://github.com/keyanfayaz/client-sites#readme",
+  "keywords": [
+    "astro",
+    "multi-tenant",
+    "cloudflare",
+    "mdx",
+    "content-collections",
+    "multi-client",
+    "saas"
+  ],
+  "engines": {
+    "node": ">=18.17.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "wrangler pages dev dist",
+    "format": "prettier --write .",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "new:client": "tsx scripts/new-client.ts",
+    "sync:content": "tsx -e 'import { syncContentFiles } from \"./src/lib/contentUtils.js\"; syncContentFiles()'"
+  },
+  "dependencies": {
+    "@astrojs/cloudflare": "^9.2.0",
+    "@astrojs/mdx": "^3.1.0",
+    "@astrojs/react": "^3.4.0",
+    "@astrojs/tailwind": "^5.1.0",
+    "astro": "^4.12.0",
+    "minisearch": "^6.3.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@tailwindcss/typography": "^0.5.19",
+    "@types/node": "^20.14.9",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-astro": "^1.2.0",
+    "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-jsx-a11y": "^6.8.0",
+    "eslint-plugin-react": "^7.34.3",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "postcss": "^8.4.41",
+    "prettier": "^3.3.3",
+    "prettier-plugin-astro": "^0.14.0",
+    "rimraf": "^5.0.7",
+    "tailwindcss": "^3.4.9",
+    "tslib": "^2.6.3",
+    "tsx": "^4.16.2",
+    "typescript": "^5.5.4",
+    "wrangler": "^4.30.0"
+  }
+}
