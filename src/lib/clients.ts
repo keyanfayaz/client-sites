@@ -25,7 +25,10 @@ export const clients: ClientRegistry = {
     nav: [
       { label: 'Home', path: '/' },
       { label: 'Features', path: '/features' },
-      { label: 'About', path: '/about' }
+      { label: 'Solutions', path: '/solutions' },
+      { label: 'Pricing', path: '/pricing' },
+      { label: 'About', path: '/about' },
+      { label: 'Contact', path: '/contact' }
     ]
   },
   beta: {

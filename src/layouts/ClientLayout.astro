@@ -11,26 +11,19 @@ type Props = {
 const { client, userEmail, title } = Astro.props as Props;
 const pageTitle = title ? `${title} — ${client.name}` : client.name;
 
-// Preserve query parameters and full URLs for local development
+// The ?as=<slug> tenant override is honored on localhost and *.pages.dev
+// (see middleware.ts). Propagate it across navigation so tenant context
+// survives a page change. On a real subdomain host the hostname already
+// carries the slug, so links stay clean.
 const currentUrl = new URL(Astro.request.url);
 const searchParams = currentUrl.searchParams.toString();
 const queryString = searchParams ? `?${searchParams}` : '';
-
-// Check if we're in local development
-const isLocalDev = currentUrl.hostname === 'localhost' || currentUrl.hostname === '127.0.0.1';
+const hasSlugOverride = currentUrl.searchParams.has('as');
 
 // Helper function to create URLs with preserved query params
 function createNavUrl(path: string) {
-  if (isLocalDev) {
-    // For local development, use full URL with protocol, host, and port
-    const baseUrl = `${currentUrl.protocol}//${currentUrl.host}`;
-    // Ensure path starts with / but avoid double slashes
-    const cleanPath = path.startsWith('/') ? path : `/${path}`;
-    return `${baseUrl}${cleanPath}${queryString}`;
-  } else {
-    // For production, use relative URLs (no query params needed)
-    return path;
-  }
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  return hasSlugOverride ? `${cleanPath}${queryString}` : cleanPath;
 }
 ---
 
@@ -85,26 +78,24 @@ function createNavUrl(path: string) {
       </footer>
     </div>
     <script>
-      // Preserve query parameters for content links in local development
-      document.addEventListener('DOMContentLoaded', function() {
+      // Links written inside MDX content are plain paths like "/pricing". When the
+      // tenant comes from ?as=<slug> rather than the hostname, those links would drop
+      // the slug and bounce back to the landing page, so carry the query string over.
+      // On a real subdomain host there is no ?as= and this is a no-op.
+      document.addEventListener('DOMContentLoaded', function () {
         const currentParams = new URLSearchParams(window.location.search);
-        
-        // Only apply this for local development with query parameters
-        if (window.location.hostname === 'localhost' && currentParams.toString()) {
-          // Only target links in the main content area, not navigation
-          const contentLinks = document.querySelectorAll('main a[href^="/"]');
-          
-          contentLinks.forEach(link => {
-            const href = link.getAttribute('href');
-            if (href && href.startsWith('/')) {
-              // Don't modify if it already has query parameters or is already a full URL
-              if (!href.includes('?') && !href.includes('://')) {
-                const fullUrl = `${window.location.protocol}//${window.location.host}${href}?${currentParams.toString()}`;
-                link.setAttribute('href', fullUrl);
-              }
-            }
-          });
-        }
+        if (!currentParams.has('as')) return;
+
+        document.querySelectorAll('main a[href^="/"]').forEach((link) => {
+          const href = link.getAttribute('href');
+          if (!href || href.includes('?') || href.includes('://')) return;
+          // Keep any #fragment after the query string.
+          const [path, hash] = href.split('#');
+          link.setAttribute(
+            'href',
+            `${path}?${currentParams.toString()}${hash ? `#${hash}` : ''}`
+          );
+        });
       });
     </script>
   </body>
