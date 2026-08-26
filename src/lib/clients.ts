@@ -24,11 +24,11 @@ export const clients: ClientRegistry = {
     theme: { primary: '#2563eb', accent: '#f59e0b' },
     nav: [
       { label: 'Home', path: '/' },
-      { label: 'Features', path: '/features' },
-      { label: 'Solutions', path: '/solutions' },
-      { label: 'Pricing', path: '/pricing' },
-      { label: 'About', path: '/about' },
-      { label: 'Contact', path: '/contact' }
+      { label: 'Getting Started', path: '/getting-started' },
+      { label: 'Handbook', path: '/handbook' },
+      { label: 'Playbooks', path: '/playbooks' },
+      { label: 'Training', path: '/training' },
+      { label: 'Resources', path: '/resources' }
     ]
   },
   beta: {

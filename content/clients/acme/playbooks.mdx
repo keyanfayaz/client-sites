@@ -1,0 +1,91 @@
+---
+title: Playbooks
+description: Step-by-step procedures for the situations that cannot wait
+navOrder: 4
+published: true
+tags: [playbooks, procedures, escalation, runbooks]
+---
+
+# Playbooks
+
+Written for the person having a bad day. Each one assumes you are under time pressure and have not read it before.
+
+---
+
+## 🚨 Line Down
+
+**Trigger:** production has stopped and cannot restart within fifteen minutes.
+
+<div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-red-500 my-6">
+  <ol class="text-gray-700 space-y-3 text-sm">
+    <li><strong>Make it safe.</strong> Isolate the machine and apply lockout before any inspection.</li>
+    <li><strong>Call it out loud.</strong> Tell your supervisor. Do not begin diagnosis before the call is made.</li>
+    <li><strong>Raise the ticket.</strong> Line-down priority in the maintenance system. Include cell, machine, and what you observed — not what you think caused it.</li>
+    <li><strong>Escalate on the clock.</strong> Thirty minutes to the shift lead, sixty to the plant manager, ninety to the VP of Operations. The clock does not pause for diagnosis.</li>
+    <li><strong>Notify Planning.</strong> They decide what reroutes and which customer gets the call.</li>
+    <li><strong>Write it up before the end of shift.</strong> While you still remember the sequence.</li>
+  </ol>
+</div>
+
+**Do not** attempt a repair outside your certification, and do not defeat an interlock to keep running. Both are dismissal matters.
+
+---
+
+## 🔍 Nonconformance
+
+**Trigger:** a part does not meet the drawing, at any stage.
+
+1. **Quarantine it.** Red tag, move to the hold area. A nonconforming part that stays in flow will end up shipped.
+2. **Do not rework yet.** Rework before disposition destroys the evidence and the traceability.
+3. **Raise an NCR** in the quality system with the part number, heat lot, operation, and measured deviation.
+4. **Quality dispositions it** — use as is, rework, or scrap. Only Quality decides, never Production.
+5. **If it already shipped**, tell your account engineer immediately. Customer notification is a contractual obligation with a clock on it.
+
+<div class="bg-amber-50 border-l-4 border-amber-500 p-5 rounded-r-lg my-6">
+  <p class="text-sm text-amber-800"><strong>The rule that matters:</strong> nobody has ever been disciplined here for raising an NCR. People have been dismissed for hiding one.</p>
+</div>
+
+---
+
+## 📞 Customer Complaint
+
+| Step | Who | Timing |
+| --- | --- | --- |
+| Acknowledge receipt | Account engineer | Within 4 working hours |
+| Contain — stop further shipment | Quality | Same day |
+| Root cause investigation | Quality plus owning area | Within 5 working days |
+| Corrective action plan issued | Quality | Within 10 working days |
+| Effectiveness review | Quality | At 90 days |
+
+Never speculate about cause to a customer before the investigation concludes. "We are investigating and will come back to you by Thursday" is always the right answer.
+
+---
+
+## 🚚 Emergency Dispatch
+
+**Trigger:** a Full Program customer is line-down and needs stock today.
+
+1. Confirm entitlement — emergency dispatch is contractual, not universal
+2. Check stock across all three warehouses before declining
+3. Release under the emergency authority code; normal pick sequencing is bypassed
+4. Book the courier directly rather than waiting for the next scheduled run
+5. Tell the account engineer so the customer hears it from us first
+
+Cost is not a reason to delay an entitled emergency dispatch. Reconciliation happens afterwards.
+
+---
+
+## 🔄 Changeover
+
+Standard changeover between part families on the same cell:
+
+1. Complete and record the last piece of the outgoing run
+2. Clear all outgoing material from the cell — mixed parts is the most common cause of nonconformance here
+3. Load the new program and verify the revision against the router
+4. Run first article and hold for inspection
+5. **Do not begin the production run until first article is signed off**
+6. Record changeover time in the scheduler
+
+---
+
+*Owner: Operations and Quality · Reviewed quarterly · Example content for a demo tenant.*

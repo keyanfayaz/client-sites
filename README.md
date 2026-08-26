@@ -10,11 +10,16 @@
 
 **[multi-client-astro.pages.dev](https://multi-client-astro.pages.dev)**
 
-| Tenant | Demo link |
-| --- | --- |
-| Landing page | [multi-client-astro.pages.dev](https://multi-client-astro.pages.dev) |
-| Acme Corp | [?as=acme](https://multi-client-astro.pages.dev/?as=acme) |
-| Beta Industries | [?as=beta](https://multi-client-astro.pages.dev/?as=beta) |
+| Tenant | Mode | Demo link |
+| --- | --- | --- |
+| Landing page | — | [multi-client-astro.pages.dev](https://multi-client-astro.pages.dev) |
+| Acme Corp | Internal knowledge base, identity-gated | [?as=acme](https://multi-client-astro.pages.dev/?as=acme) |
+| Beta Industries | Public marketing site | [?as=beta](https://multi-client-astro.pages.dev/?as=beta) |
+
+The two example tenants deliberately show the framework's two modes. **Acme** is an
+internal employee wiki — onboarding, handbook, playbooks, and training — of the kind
+you would put behind Cloudflare Access, where the signed-in identity is surfaced in
+the header. **Beta** is an ordinary public company site with no gate in front of it.
 
 The demo runs on a `*.pages.dev` host, where tenants are selected with `?as=<slug>`.
 On a real domain the same tenants resolve automatically from the hostname
@@ -57,8 +62,8 @@ Visit `http://localhost:4321?as=acme` or `http://localhost:4321?as=beta` to see 
 ```
 ├── content/
 │   └── clients/              # Client content (MDX files)
-│       ├── acme/             # Example client: Acme Corp
-│       └── beta/             # Example client: Beta Industries
+│       ├── acme/             # Example tenant: internal knowledge base (gated)
+│       └── beta/             # Example tenant: public marketing site
 ├── public/
 │   ├── logos/                # Client logos
 │   └── images/               # Static images
@@ -93,7 +98,12 @@ The middleware (`src/middleware.ts`) extracts the subdomain from the request hos
 
 - `acme.example.com` → `acme`
 - `beta.example.com` → `beta`
-- `localhost:4321?as=acme` → `acme` (dev override)
+- `localhost:4321?as=acme` → `acme` (override)
+- `your-project.pages.dev/?as=acme` → `acme` (override)
+
+The `?as=<slug>` override is honored only on `localhost` and `*.pages.dev`. On any
+other host the slug comes from the hostname alone, so the override cannot be used to
+reach another tenant's content in production.
 
 ### Client Configuration
 
@@ -107,8 +117,8 @@ export const clients: ClientRegistry = {
     theme: { primary: '#2563eb', accent: '#f59e0b' },
     nav: [
       { label: 'Home', path: '/' },
-      { label: 'Features', path: '/features' },
-      { label: 'About', path: '/about' }
+      { label: 'Getting Started', path: '/getting-started' },
+      { label: 'Handbook', path: '/handbook' }
     ]
   },
   // ... more clients
@@ -121,14 +131,14 @@ Content is authored in `content/clients/<slug>/` using MDX files with frontmatte
 
 ```mdx
 ---
-title: Welcome to Acme
-description: Your trusted partner
-navOrder: 1
+title: Handbook
+description: Standards, quality policy, and the operating rules
+navOrder: 3
 published: true
-tags: [home]
+tags: [handbook, policy]
 ---
 
-# Welcome to Acme Corp
+# Handbook
 
 Your content here...
 ```
