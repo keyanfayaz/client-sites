@@ -1,12 +1,12 @@
 # Multi-Client Astro
 
-> **One codebase, many client sites.** A multi-tenant Astro framework for hosting multiple client sites with hostname-based routing, MDX content collections, and per-client theming.
+Serve many client sites from one Astro codebase. The hostname decides which tenant's content, theme, and navigation a visitor gets. Everything else is shared.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Astro](https://img.shields.io/badge/Astro-4.x-ff5d01.svg)](https://astro.build)
 [![Cloudflare Pages](https://img.shields.io/badge/Cloudflare-Pages-f38020.svg)](https://pages.cloudflare.com)
 
-## 🔴 Live Demo
+## Live demo
 
 **[multi-client-astro.pages.dev](https://multi-client-astro.pages.dev)**
 
@@ -16,98 +16,92 @@
 | Acme Corp | Internal knowledge base, identity-gated | [?as=acme](https://multi-client-astro.pages.dev/?as=acme) |
 | Beta Industries | Public marketing site | [?as=beta](https://multi-client-astro.pages.dev/?as=beta) |
 
-The two example tenants deliberately show the framework's two modes. **Acme** is an
-internal employee wiki — onboarding, handbook, playbooks, and training — of the kind
-you would put behind Cloudflare Access, where the signed-in identity is surfaced in
-the header. **Beta** is an ordinary public company site with no gate in front of it.
+The two tenants exist to show the two modes. Acme is an employee wiki, the sort of thing you put behind Cloudflare Access, and it shows the signed-in identity in the header. Beta is an ordinary public marketing site with nothing in front of it.
 
-The demo runs on a `*.pages.dev` host, where tenants are selected with `?as=<slug>`.
-On a real domain the same tenants resolve automatically from the hostname
-(`acme.example.com`), which is the mode described throughout this README.
+The demo runs on a `*.pages.dev` host, so tenants are selected with `?as=<slug>`. On a real domain they resolve from the hostname instead, which is what the rest of this README describes.
 
-## ✨ Features
+## What it does
 
-- 🌐 **Hostname-Based Routing** — Automatically serve different content based on subdomain
-- 🎨 **Per-Client Theming** — Custom colors, logos, and navigation for each client
-- 📝 **MDX Content Collections** — Content-first approach with Markdown/MDX and Zod schemas
-- 🔐 **Cloudflare Zero Trust** — Built-in support for Cloudflare Access authentication
-- ⚡ **Lightning Fast** — Powered by Astro 4 SSR and Cloudflare Pages edge deployment
+- Routes by hostname, so `acme.example.com` and `beta.example.com` serve different content from one deployment
+- Gives each tenant its own colors, logo, and navigation from a single registry entry
+- Takes content as MDX files with a Zod-checked frontmatter schema
+- Reads the signed-in user from Cloudflare Access headers when a tenant sits behind Zero Trust
+- Runs as Astro SSR on Cloudflare Pages
 
-## 🚀 Quick Start
+Navigation is derived from the content files rather than maintained by hand. Add an MDX page with a `navOrder` and it shows up in the nav.
+
+## Quick start
 
 ```bash
-# Clone the repository
 git clone https://github.com/keyanfayaz/client-sites.git
 cd client-sites
-
-# Install dependencies
 pnpm install
-
-# Start development server
 pnpm dev
 ```
 
-Visit `http://localhost:4321?as=acme` or `http://localhost:4321?as=beta` to see the example client sites.
+Then open `http://localhost:4321?as=acme` or `http://localhost:4321?as=beta`.
 
-## 📋 Tech Stack
+No environment variables are needed to run it.
 
-- **Framework**: [Astro 4](https://astro.build) (SSR mode)
-- **Adapter**: [@astrojs/cloudflare](https://docs.astro.build/en/guides/integrations-guide/cloudflare/) (Pages Functions)
-- **UI**: [React](https://react.dev) + [TailwindCSS](https://tailwindcss.com)
-- **Content**: [MDX](https://mdxjs.com) + [Astro Content Collections](https://docs.astro.build/en/guides/content-collections/)
-- **Deployment**: [Cloudflare Pages](https://pages.cloudflare.com)
+## Tech stack
 
-## 🏗️ Project Structure
+- **Framework**: [Astro 4](https://astro.build) in SSR mode
+- **Adapter**: [@astrojs/cloudflare](https://docs.astro.build/en/guides/integrations-guide/cloudflare/), targeting Pages Functions
+- **UI**: [React](https://react.dev) and [TailwindCSS](https://tailwindcss.com)
+- **Content**: [MDX](https://mdxjs.com) with [Astro Content Collections](https://docs.astro.build/en/guides/content-collections/)
+- **Hosting**: [Cloudflare Pages](https://pages.cloudflare.com)
+
+## Project structure
 
 ```
 ├── content/
-│   └── clients/              # Client content (MDX files)
+│   └── clients/              # Tenant content (MDX)
 │       ├── acme/             # Example tenant: internal knowledge base (gated)
 │       └── beta/             # Example tenant: public marketing site
 ├── public/
-│   ├── logos/                # Client logos
+│   ├── logos/                # Tenant logos
 │   └── images/               # Static images
 ├── scripts/
-│   └── new-client.ts         # CLI tool to scaffold new clients
+│   └── new-client.ts         # Scaffolds a new tenant
 ├── src/
 │   ├── content/
-│   │   ├── clientPages/      # Synced content (auto-generated)
-│   │   └── config.ts         # Content collection schemas
+│   │   ├── clientPages/      # Symlink to content/clients
+│   │   └── config.ts         # Collection schema
 │   ├── layouts/
-│   │   └── ClientLayout.astro # Main layout with theming
+│   │   └── ClientLayout.astro # Shared layout, applies the tenant theme
 │   ├── lib/
-│   │   ├── clients.ts        # Client registry (config, theme, nav)
-│   │   ├── contentUtils.ts   # Content syncing utilities
-│   │   └── navigation.ts     # Navigation builder
-│   ├── middleware.ts         # Hostname → client slug routing
+│   │   ├── clients.ts        # Tenant registry: theme, logo, nav
+│   │   ├── contentUtils.ts   # Content syncing
+│   │   └── navigation.ts     # Builds nav from content entries
+│   ├── middleware.ts         # Hostname to tenant slug
 │   ├── pages/
-│   │   ├── [...catchall].astro # Dynamic page renderer
-│   │   └── index.astro       # Landing page
+│   │   ├── [...catchall].astro # Renders any tenant page
+│   │   └── index.astro       # Landing page and tenant home
 │   └── styles/
-│       └── base.css          # Global styles
-├── astro.config.mjs          # Astro configuration
+│       └── base.css
+├── astro.config.mjs
 ├── package.json
 └── tsconfig.json
 ```
 
-## 🎯 How It Works
+## How it works
 
-### Hostname-Based Routing
+### Hostname routing
 
-The middleware (`src/middleware.ts`) extracts the subdomain from the request hostname and maps it to a client slug:
+`src/middleware.ts` takes the subdomain off the request hostname and maps it to a tenant slug:
 
 - `acme.example.com` → `acme`
 - `beta.example.com` → `beta`
 - `localhost:4321?as=acme` → `acme` (override)
 - `your-project.pages.dev/?as=acme` → `acme` (override)
 
-The `?as=<slug>` override is honored only on `localhost` and `*.pages.dev`. On any
-other host the slug comes from the hostname alone, so the override cannot be used to
-reach another tenant's content in production.
+The `?as=<slug>` override works only on `localhost` and `*.pages.dev`. Anywhere else the slug comes from the hostname alone, so nobody can use the query parameter to read another tenant's content in production. That matters if one of your tenants is meant to be private.
 
-### Client Configuration
+An unknown slug renders an "unknown client" page rather than falling through to another tenant.
 
-Clients are defined in `src/lib/clients.ts`:
+### Tenant configuration
+
+Tenants live in `src/lib/clients.ts`:
 
 ```typescript
 export const clients: ClientRegistry = {
@@ -121,13 +115,15 @@ export const clients: ClientRegistry = {
       { label: 'Handbook', path: '/handbook' }
     ]
   },
-  // ... more clients
+  // ... more tenants
 };
 ```
 
-### Content Management
+One wrinkle worth knowing: the `nav` array here is overridden at render time by `buildNavigation()`, which reads the tenant's MDX files and orders them by `navOrder`. Keep the registry list accurate so the config stays readable, but the content files are what actually drive the menu.
 
-Content is authored in `content/clients/<slug>/` using MDX files with frontmatter:
+### Content
+
+Content is authored in `content/clients/<slug>/` as MDX with frontmatter:
 
 ```mdx
 ---
@@ -143,87 +139,53 @@ tags: [handbook, policy]
 Your content here...
 ```
 
-Content is automatically synced to `src/content/clientPages/` during development and build.
+`published: false` removes a page from the navigation, but it does not block the URL. The catchall still renders that page for anyone who requests it directly, so treat the flag as a draft marker rather than access control. `src/content/clientPages` is a symlink to `content/clients`, so new files are picked up without a copy step.
 
-## 🛠️ Adding a New Client
-
-Use the built-in CLI tool:
+## Adding a tenant
 
 ```bash
 pnpm new:client mycompany "My Company Name"
 ```
 
-This will:
-1. Create `content/clients/mycompany/index.mdx`
-2. Add the client to `src/lib/clients.ts`
-3. Sync content to `src/content/clientPages/`
+That creates `content/clients/mycompany/index.mdx`, adds the tenant to `src/lib/clients.ts`, and syncs content. After it runs, add a logo at `public/logos/mycompany.svg`, set the theme colors, and write more MDX pages.
 
-Then:
-1. Add a logo to `public/logos/mycompany.svg`
-2. Customize the theme colors in `src/lib/clients.ts`
-3. Add more MDX pages to `content/clients/mycompany/`
-
-## 🚀 Deployment
+## Deployment
 
 ### Cloudflare Pages
 
-1. **Create a Pages project** pointing to your repository
-   - Build command: `pnpm build`
-   - Output directory: `dist`
+1. Create a Pages project pointing at your repository, with build command `pnpm build` and output directory `dist`.
 
-2. **Set up custom domain**:
-   - Add a wildcard DNS record: `*.example.com` CNAME to your Pages hostname
-   - Add custom domain in Cloudflare Pages settings
+2. Point a wildcard at it. Add a `*.example.com` CNAME to your Pages hostname, then add the custom domain in the Pages settings.
 
-3. **Configure Cloudflare Zero Trust Access** (optional):
-   - Domain: `*.example.com/*`
-   - Policy: One-Time PIN, email allowlists, or other authentication
-   - Enable Access for preview URLs
+3. Optionally put tenants behind Cloudflare Access. Cover `*.example.com/*` with a policy such as one-time PIN or an email allowlist, and enable Access for preview URLs too.
 
-The app automatically reads authenticated user email from Cloudflare Access headers and displays it in the UI.
+The app reads the authenticated email from the Access headers and shows it in the layout. It never handles sign-in itself. Access enforcement happens at the edge, before a request reaches the app, so removing the policy removes the protection.
 
-### Preview Hygiene
+### Preview hygiene
 
-The middleware automatically sets `X-Robots-Tag: noindex` for `*.pages.dev` preview deployments.
+The middleware sets `X-Robots-Tag: noindex` on `*.pages.dev` responses so preview deployments stay out of search results.
 
-## 🔧 Development
+## Development
 
 ```bash
-# Start dev server
-pnpm dev
-
-# Build for production
-pnpm build
-
-# Preview production build locally
-pnpm preview
-
-# Type checking
-pnpm typecheck
-
-# Linting
-pnpm lint
-
-# Format code
-pnpm format
-
-# Create new client
-pnpm new:client <slug> "Client Name"
-
-# Sync content manually
-pnpm sync:content
+pnpm dev            # Start dev server
+pnpm build          # Build for production
+pnpm preview        # Preview the production build
+pnpm typecheck      # tsc --noEmit
+pnpm lint           # ESLint
+pnpm format         # Prettier
+pnpm new:client     # Scaffold a tenant: pnpm new:client <slug> "Name"
+pnpm sync:content   # Sync content manually
 ```
 
-### Local Development with Client Override
-
-Use the `?as=<slug>` query parameter to test different clients locally:
+To work on a specific tenant locally, use the `?as=<slug>` override:
 
 - `http://localhost:4321?as=acme`
 - `http://localhost:4321?as=beta`
 
-## 📝 Content Collections
+## Content collections
 
-Content collections are defined in `src/content/config.ts` with Zod schemas:
+The schema lives in `src/content/config.ts`:
 
 ```typescript
 const clientPages = defineCollection({
@@ -238,51 +200,35 @@ const clientPages = defineCollection({
 });
 ```
 
-## 🎨 Theming
+Frontmatter that fails the schema breaks the build rather than shipping a half-rendered page.
 
-Each client can have custom colors defined in `src/lib/clients.ts`:
+## Theming
+
+Each tenant sets two colors in `src/lib/clients.ts`:
 
 ```typescript
 theme: {
-  primary: '#2563eb',  // Primary brand color
-  accent: '#f59e0b'    // Accent color
+  primary: '#2563eb',
+  accent: '#f59e0b'
 }
 ```
 
-These are applied as CSS custom properties in `ClientLayout.astro`:
+`ClientLayout.astro` applies them as CSS custom properties, so tenant styling stays in CSS instead of forking components:
 
 ```css
 --color-primary: <primary>;
 --color-accent: <accent>;
 ```
 
-## 🤝 Contributing
+## Contributing
 
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+See [CONTRIBUTING.md](CONTRIBUTING.md). Bug fixes, documentation, and new example tenants are all useful.
 
-We're open to:
-- 🐛 Bug fixes
-- ✨ Feature improvements
-- 📚 Documentation updates
-- 🎨 UI/UX enhancements
+## License
 
-## 📄 License
+MIT. See [LICENSE](LICENSE).
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## Links
 
-## 🙏 Acknowledgments
-
-Built with:
-- [Astro](https://astro.build) — The web framework for content-driven websites
-- [Cloudflare Pages](https://pages.cloudflare.com) — Global edge deployment
-- [TailwindCSS](https://tailwindcss.com) — Utility-first CSS framework
-
-## 📧 Support
-
-- 📖 [Documentation](https://github.com/keyanfayaz/client-sites#readme)
-- 🐛 [Issue Tracker](https://github.com/keyanfayaz/client-sites/issues)
-- 💬 [Discussions](https://github.com/keyanfayaz/client-sites/discussions)
-
----
-
-Made with ❤️ using Astro and Cloudflare Pages
+- [Issues](https://github.com/keyanfayaz/client-sites/issues)
+- [Discussions](https://github.com/keyanfayaz/client-sites/discussions)

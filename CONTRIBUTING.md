@@ -1,223 +1,115 @@
 # Contributing to Multi-Client Astro
 
-Thank you for your interest in contributing to Multi-Client Astro! This document provides guidelines and instructions for contributing to the project.
+Bug fixes, documentation, and new example tenants are all welcome. This page covers how to get set up and what to expect from review.
 
-## 🎯 Project Goals
+## Scope
 
-Multi-Client Astro is designed to be a robust, production-ready framework for hosting multiple client sites from a single codebase. We welcome contributions that:
+The project hosts multiple client sites from one Astro codebase. Changes that make that easier are in scope: routing, theming, content handling, deployment, and documentation.
 
-- Fix bugs and improve stability
-- Enhance existing features
-- Improve documentation
-- Add useful features that benefit multi-tenant use cases
-- Optimize performance
+Features that only make sense for a single tenant are usually better in your own fork. If you are unsure, open an issue before writing the code.
 
-## 🐛 Reporting Bugs
+## Reporting bugs
 
-Before creating a bug report, please:
+Search the existing issues first, then include:
 
-1. **Search existing issues** to avoid duplicates
-2. **Check the documentation** to ensure it's not expected behavior
-3. **Test with the latest version** to see if the issue has been fixed
+- What you did, step by step
+- What you expected, and what happened instead
+- Node version, OS, and browser
+- A code sample or a link to a repository that reproduces it
 
-When creating a bug report, include:
+A reproduction is worth more than a description. Most bugs that go unfixed are the ones nobody can reproduce.
 
-- **Clear title and description**
-- **Steps to reproduce** the issue
-- **Expected behavior** vs actual behavior
-- **Environment details** (Node version, OS, browser)
-- **Code samples** or repository links if applicable
-- **Screenshots** if relevant
+## Suggesting features
 
-## ✨ Suggesting Features
+Open an issue that explains the use case before the solution. Say what you were trying to do and where the current design got in the way. Smaller proposals get reviewed faster than large ones.
 
-We're open to feature suggestions! When proposing a new feature:
+## Development setup
 
-1. **Check existing issues** to see if it's already been suggested
-2. **Explain the use case** — why would this be useful?
-3. **Describe the solution** — how should it work?
-4. **Consider alternatives** — are there other ways to achieve this?
-5. **Keep scope reasonable** — smaller, focused features are easier to implement
-
-## 🔧 Development Setup
-
-### Prerequisites
-
-- Node.js 18.17.0 or higher
-- pnpm (recommended) or npm
-
-### Setup Steps
+Requires Node 18.17.0 or higher and pnpm.
 
 ```bash
-# Clone your fork
 git clone https://github.com/keyanfayaz/client-sites.git
 cd client-sites
-
-# Install dependencies
 pnpm install
-
-# Start development server
 pnpm dev
 ```
 
-### Available Scripts
+No environment variables are needed.
 
-- `pnpm dev` — Start development server
-- `pnpm build` — Build for production
-- `pnpm preview` — Preview production build
-- `pnpm typecheck` — Run TypeScript type checking
-- `pnpm lint` — Run ESLint
-- `pnpm format` — Format code with Prettier
-- `pnpm new:client <slug> "Name"` — Create new client
+### Scripts
 
-## 📝 Pull Request Process
+- `pnpm dev` — start the dev server
+- `pnpm build` — build for production
+- `pnpm preview` — preview the production build
+- `pnpm typecheck` — run `tsc --noEmit`
+- `pnpm lint` — run ESLint
+- `pnpm format` — run Prettier
+- `pnpm new:client <slug> "Name"` — scaffold a tenant
 
-### Before Submitting
+## Pull requests
 
-1. **Create a feature branch** from `main`:
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
+Branch from `main`, then before you open the PR:
 
-2. **Make your changes** following the code style guidelines
+```bash
+pnpm typecheck
+pnpm lint
+pnpm build
+```
 
-3. **Test your changes**:
-   ```bash
-   pnpm typecheck
-   pnpm lint
-   pnpm build
-   ```
+CI runs the same install and build on Node 18 and 20, so a green local build usually means a green CI run. The lockfile is committed and CI installs with `--frozen-lockfile`, so if you change dependencies, commit the updated `pnpm-lock.yaml` or CI will fail before it builds.
 
-4. **Update documentation** if needed (README, comments, etc.)
+Check both example tenants still render, since routing changes tend to break one and not the other:
 
-5. **Commit your changes** with clear, descriptive messages:
-   ```bash
-   git commit -m "feat: add new feature X"
-   git commit -m "fix: resolve issue with Y"
-   git commit -m "docs: update README for Z"
-   ```
+- `http://localhost:4321?as=acme`
+- `http://localhost:4321?as=beta`
 
-### Commit Message Convention
+In the PR description, say what changed and how you tested it. Include screenshots for UI changes.
 
-We follow a simple commit message convention:
+### Commit messages
 
-- `feat:` — New feature
-- `fix:` — Bug fix
-- `docs:` — Documentation changes
-- `style:` — Code style changes (formatting, etc.)
-- `refactor:` — Code refactoring
-- `perf:` — Performance improvements
-- `test:` — Adding or updating tests
-- `chore:` — Maintenance tasks
+- `feat:` new feature
+- `fix:` bug fix
+- `docs:` documentation
+- `style:` formatting
+- `refactor:` restructuring without behavior change
+- `perf:` performance
+- `test:` tests
+- `chore:` maintenance
 
-### Submitting the PR
+## Code style
 
-1. **Push to your fork**:
-   ```bash
-   git push origin feature/your-feature-name
-   ```
+Prettier and ESLint decide formatting, so run them rather than matching style by hand.
 
-2. **Create a Pull Request** on GitHub
+Beyond that:
 
-3. **Fill out the PR template** with:
-   - Description of changes
-   - Related issue numbers (if applicable)
-   - Testing performed
-   - Screenshots (if UI changes)
+- Write TypeScript, and type props on Astro components
+- Style with Tailwind utilities, and use the `--color-primary` and `--color-accent` custom properties for anything tenant-specific, so themes keep working
+- Comment the reasoning behind non-obvious code, not what the code already says
 
-4. **Wait for review** — maintainers will review and provide feedback
+Tenant-specific styling belongs in CSS custom properties rather than a forked component. If you find yourself branching on the tenant slug in a component, that is usually a sign the theme needs another variable.
 
-5. **Address feedback** — make requested changes and push updates
+## Testing
 
-6. **Merge** — once approved, a maintainer will merge your PR
+There are no automated tests yet, and adding them would be a genuinely useful contribution.
 
-## 🎨 Code Style Guidelines
+Until then, check by hand that the build succeeds, typecheck and lint pass, both example tenants render, navigation between pages works, and the browser console is clean.
 
-### TypeScript/JavaScript
+Navigation is worth testing specifically. The `?as=<slug>` override has to survive a page change, so click through the nav rather than only loading one page.
 
-- Use TypeScript for type safety
-- Follow existing code patterns
-- Use meaningful variable and function names
-- Add comments for complex logic
-- Prefer functional programming patterns where appropriate
+## Documentation
 
-### Astro Components
+Update the README when you change behavior it describes. Code examples in the README are copied by people who have not read the source, so keep them working.
 
-- Keep components focused and single-purpose
-- Use props for configuration
-- Follow Astro's component conventions
-- Use TypeScript for prop types
+## Questions
 
-### CSS/Styling
+Open a [Discussion](https://github.com/keyanfayaz/client-sites/discussions) or check the [Issues](https://github.com/keyanfayaz/client-sites/issues).
 
-- Use TailwindCSS utility classes
-- Follow existing styling patterns
-- Keep styles scoped to components
-- Use CSS custom properties for theming
+## Code of conduct
 
-### File Organization
+Be respectful, accept review feedback in good faith, and assume good intent. Harassment, discriminatory language, personal attacks, and publishing other people's private information are not tolerated and will result in a ban.
 
-- Place files in appropriate directories
-- Keep related code together
-- Use clear, descriptive file names
-- Follow existing project structure
+Report problems through a GitHub issue or directly to the maintainers.
 
-## 🧪 Testing
+## License
 
-Currently, the project doesn't have automated tests. Contributions to add testing infrastructure are welcome!
-
-For now, please manually test:
-
-1. **Build succeeds**: `pnpm build`
-2. **Type checking passes**: `pnpm typecheck`
-3. **Linting passes**: `pnpm lint`
-4. **Features work** in development and production modes
-5. **Multiple clients** work correctly
-6. **No console errors** in browser
-
-## 📚 Documentation
-
-Good documentation is crucial! When contributing:
-
-- Update README.md for new features
-- Add JSDoc comments to functions and types
-- Include code examples where helpful
-- Update CONTRIBUTING.md if process changes
-
-## 🤔 Questions?
-
-If you have questions about contributing:
-
-- Check existing [Issues](https://github.com/keyanfayaz/client-sites/issues)
-- Start a [Discussion](https://github.com/keyanfayaz/client-sites/discussions)
-- Review the [README](README.md) documentation
-
-## 📜 Code of Conduct
-
-### Our Pledge
-
-We are committed to providing a welcoming and inclusive experience for everyone. We expect all contributors to:
-
-- Be respectful and considerate
-- Accept constructive criticism gracefully
-- Focus on what's best for the community
-- Show empathy towards others
-
-### Unacceptable Behavior
-
-- Harassment or discriminatory language
-- Trolling or insulting comments
-- Personal or political attacks
-- Publishing others' private information
-- Other conduct inappropriate for a professional setting
-
-## 📄 License
-
-By contributing to Multi-Client Astro, you agree that your contributions will be licensed under the MIT License.
-
----
-
-Thank you for contributing to Multi-Client Astro! 🎉
-
-
-
+Contributions are licensed under the MIT License.
