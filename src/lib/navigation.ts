@@ -13,6 +13,9 @@ export function buildNavigation(
   }
 
   return entries
+    // Unpublished pages are already excluded by getClientPages, which is what
+    // makes them unreachable rather than merely unlinked. Repeated here so this
+    // function is still correct if it is ever handed an unfiltered collection.
     .filter((e) => e.data.published !== false)
     .sort((a, b) => (a.data.navOrder ?? 9999) - (b.data.navOrder ?? 9999))
     .map((e) => {

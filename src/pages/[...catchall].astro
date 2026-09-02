@@ -1,6 +1,6 @@
 ---
 import ClientLayout from '../layouts/ClientLayout.astro';
-import { getCollection } from 'astro:content';
+import { getClientPages } from '../lib/clientPages';
 import { clients } from '../lib/clients';
 import { buildNavigation } from '../lib/navigation';
 
@@ -21,7 +21,7 @@ if (!client || unknownClient) {
 
 const requestPath = (Astro.params.catchall ?? '').replace(/\/$/, '');
 
-const entries = await getCollection('clientPages', (e) => e.id.startsWith(`${clientSlug}/`));
+const entries = await getClientPages(clientSlug);
 
 function stripExt(id: string) {
   return id.replace(/\.(md|mdx)$/, '');

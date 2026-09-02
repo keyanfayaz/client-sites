@@ -70,6 +70,7 @@ No environment variables are needed to run it.
 │   ├── layouts/
 │   │   └── ClientLayout.astro # Shared layout, applies the tenant theme
 │   ├── lib/
+│   │   ├── clientPages.ts    # Loads a tenant's published pages
 │   │   ├── clients.ts        # Tenant registry: theme, logo, nav
 │   │   ├── contentUtils.ts   # Content syncing
 │   │   └── navigation.ts     # Builds nav from content entries
@@ -139,7 +140,7 @@ tags: [handbook, policy]
 Your content here...
 ```
 
-`published: false` removes a page from the navigation, but it does not block the URL. The catchall still renders that page for anyone who requests it directly, so treat the flag as a draft marker rather than access control. `src/content/clientPages` is a symlink to `content/clients`, so new files are picked up without a copy step.
+`published: false` hides a page completely. Pages are filtered as they are loaded, in `src/lib/clientPages.ts`, so an unpublished page is absent from the navigation and requesting its URL returns a 404. It governs what the site serves, not what is in your repository: the MDX file is still there for anyone who can read the repo. `src/content/clientPages` is a symlink to `content/clients`, so new files are picked up without a copy step.
 
 ## Adding a tenant
 

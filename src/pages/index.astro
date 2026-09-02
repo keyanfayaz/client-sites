@@ -1,7 +1,7 @@
 ---
 import '../styles/base.css';
 import ClientLayout from '../layouts/ClientLayout.astro';
-import { getCollection } from 'astro:content';
+import { getClientPages } from '../lib/clientPages';
 import { clients } from '../lib/clients';
 import { buildNavigation } from '../lib/navigation';
 
@@ -14,7 +14,7 @@ let clientContent = null;
 // Only handle the root path for client content, let catchall handle sub-pages
 if (clientSlug && clients[clientSlug] && !unknownClient && Astro.url.pathname === '/') {
   const client = clients[clientSlug];
-  const entries = await getCollection('clientPages', (e) => e.id.startsWith(`${clientSlug}/`));
+  const entries = await getClientPages(clientSlug);
   
   function stripExt(id: string) {
     return id.replace(/\.(md|mdx)$/, '');
