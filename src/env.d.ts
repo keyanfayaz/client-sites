@@ -10,6 +10,11 @@ declare namespace App {
      * decodeJWT in src/middleware.ts. Do not use this for authorization.
      */
     userEmail?: string | null;
+    /**
+     * Whether ?as=<slug> is honored for this request. Pages use it to avoid
+     * offering override-based links on hosts where they cannot work.
+     */
+    overrideAllowed?: boolean;
     /** Injected by @astrojs/cloudflare; carries dashboard environment bindings. */
     runtime?: {
       env?: Record<string, unknown>;

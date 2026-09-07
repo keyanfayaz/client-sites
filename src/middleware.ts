@@ -84,6 +84,7 @@ export const onRequest: MiddlewareHandler = async (context, next) => {
     hostname,
     readSetting(context.locals, 'ALLOW_TENANT_OVERRIDE')
   );
+  context.locals.overrideAllowed = overrideAllowed;
   const override = overrideAllowed
     ? (url.searchParams.get('as') ?? undefined)
     : undefined;
