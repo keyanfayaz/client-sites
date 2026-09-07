@@ -3,32 +3,18 @@ import cloudflare from '@astrojs/cloudflare';
 import tailwind from '@astrojs/tailwind';
 import react from '@astrojs/react';
 import mdx from '@astrojs/mdx';
-import { getContentWatcher, syncContentFiles } from './src/lib/contentUtils';
 
+// Content is synced by `pnpm sync:content`, which `pnpm dev` and `pnpm build`
+// run before Astro starts. It is deliberately not wired into this file: doing
+// it here previously relied on config options the adapter does not support, so
+// the sync only happened as a side effect of the config being evaluated.
 export default defineConfig({
   output: 'server',
   adapter: cloudflare({
-    // Ensure content is copied before build
-    functionPerRoute: true,
-    build: {
-      beforeBuild: async () => {
-        await syncContentFiles();
-      }
-    }
+    functionPerRoute: true
   }),
   integrations: [react(), mdx(), tailwind()],
   server: {
-    port: 4321,
-    watch: {
-      // Add custom file watcher for content changes
-      customWatchers: [
-        {
-          name: 'content-sync',
-          watch: ['content/clients/**/*'],
-          on: getContentWatcher()
-        }
-      ]
-    }
+    port: 4321
   }
 });
-

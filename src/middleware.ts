@@ -1,92 +1,95 @@
 import type { MiddlewareHandler } from 'astro';
 import { clients } from './lib/clients';
+import {
+  hostnameToSlug,
+  isOverrideAllowed,
+  isPagesDevHost
+} from './lib/tenant';
 
 /**
- * Decode a JWT token to extract the payload (without verification)
- * Cloudflare Access already verifies the JWT, we just need to read it
+ * Read a setting from the Cloudflare runtime environment, falling back to the
+ * build-time environment. Values set in the Pages dashboard only exist on
+ * `locals.runtime.env` at request time; values from a local `.env` only exist
+ * on `import.meta.env` at build time. Both are supported.
  */
-function decodeJWT(token: string): Record<string, any> | null {
+function readSetting(locals: App.Locals, key: string): string | undefined {
+  const runtimeEnv = (locals as { runtime?: { env?: Record<string, unknown> } })
+    .runtime?.env;
+  const value =
+    runtimeEnv?.[key] ?? (import.meta.env as Record<string, unknown>)[key];
+  return typeof value === 'string' ? value : undefined;
+}
+
+/**
+ * Read the payload of a Cloudflare Access JWT *without verifying it*.
+ *
+ * SECURITY: the signature is not checked here. This value is trustworthy only
+ * because Cloudflare Access validates the token at the edge and refuses the
+ * request before it reaches this code. If Access is not in front of the
+ * hostname, anyone can forge this header.
+ *
+ * Therefore `locals.userEmail` is for DISPLAY ONLY. Never use it to decide
+ * whether a request is allowed to see something — enforce that at the edge with
+ * an Access policy, or verify the JWT signature against Cloudflare's public keys
+ * before trusting it.
+ */
+function decodeJWT(token: string): Record<string, unknown> | null {
   try {
-    // JWT format: header.payload.signature
     const parts = token.split('.');
     if (parts.length !== 3) return null;
-    
-    // Decode the payload (second part)
-    const payload = parts[1];
-    // Add padding if needed
-    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = atob(base64);
-    return JSON.parse(jsonPayload);
-  } catch (error) {
+
+    // base64url -> base64, then restore the padding atob() requires.
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64.padEnd(
+      base64.length + ((4 - (base64.length % 4)) % 4),
+      '='
+    );
+
+    // atob() yields one byte per character; reassemble it as UTF-8 so that
+    // non-ASCII characters in a name or email survive the round trip.
+    const bytes = Uint8Array.from(atob(padded), (c) => c.charCodeAt(0));
+    const parsed: unknown = JSON.parse(new TextDecoder().decode(bytes));
+    return typeof parsed === 'object' && parsed !== null
+      ? (parsed as Record<string, unknown>)
+      : null;
+  } catch {
     return null;
   }
-}
-
-function hostnameToSlug(hostname: string | null): string | undefined {
-  if (!hostname) return undefined;
-  const host = hostname.split(':')[0];
-  const parts = host.split('.');
-  
-  // localhost and dev: rely on ?as=slug
-  if (host.startsWith('localhost')) return undefined;
-  if (host.endsWith('.pages.dev')) return undefined;
-  
-  // Handle www subdomain - strip it and check again
-  if (parts[0] === 'www' && parts.length >= 4) {
-    return parts[1]; // www.beta.example.com -> beta
-  }
-  
-  // For subdomains like beta.example.com or beta.my-domain.com
-  if (parts.length >= 3) {
-    return parts[0];
-  }
-  
-  return undefined; // apex domain handled by index page
-}
-
-function isDevelopmentEnvironment(hostname: string | null): boolean {
-  if (!hostname) return false;
-  const host = hostname.split(':')[0];
-  
-  // Local development
-  if (host.startsWith('localhost') || host === '127.0.0.1') return true;
-  
-  // Cloudflare Pages preview environments
-  if (host.endsWith('.pages.dev')) return true;
-  
-  return false;
 }
 
 export const onRequest: MiddlewareHandler = async (context, next) => {
   const url = new URL(context.request.url);
   const hostname = context.request.headers.get('host');
 
-  // Derive slug: dev override via ?as=slug ONLY in development environments
-  const isDevEnv = isDevelopmentEnvironment(hostname);
-  
-  // Access email header (not for auth, display only)
-  // Cloudflare Access sends user info in a JWT token, not as a direct header
-  let email: string | null = null;
-  
-  // First, try the direct email header (legacy/fallback)
-  email = context.request.headers.get('Cf-Access-Authenticated-User-Email') 
-    || context.request.headers.get('CF-Access-Authenticated-User-Email')
-    || null;
-  
-  // If no direct email header, decode the JWT token from Cloudflare Access
+  // Identity, for display only. See the note on decodeJWT above.
+  let email: string | null =
+    context.request.headers.get('Cf-Access-Authenticated-User-Email') || null;
+
   if (!email) {
     const jwtToken = context.request.headers.get('Cf-Access-Jwt-Assertion');
     if (jwtToken) {
       const decoded = decodeJWT(jwtToken);
-      if (decoded && decoded.email) {
+      if (decoded && typeof decoded.email === 'string') {
         email = decoded.email;
       }
     }
   }
-  
+
   context.locals.userEmail = email;
-  const override = isDevEnv ? (url.searchParams.get('as') ?? undefined) : undefined;
-  const derived = override ?? hostnameToSlug(hostname);
+
+  // The ?as=<slug> override is honored on localhost, and elsewhere only when
+  // ALLOW_TENANT_OVERRIDE=true is set explicitly. It is not inferred from the
+  // hostname, because *.pages.dev is publicly reachable.
+  const overrideAllowed = isOverrideAllowed(
+    hostname,
+    readSetting(context.locals, 'ALLOW_TENANT_OVERRIDE')
+  );
+  const override = overrideAllowed
+    ? (url.searchParams.get('as') ?? undefined)
+    : undefined;
+
+  const baseDomain = readSetting(context.locals, 'SITE_BASE_DOMAIN');
+  const derived = override ?? hostnameToSlug(hostname, baseDomain);
   context.locals.clientSlug = derived;
 
   if (derived && !clients[derived]) {
@@ -95,13 +98,13 @@ export const onRequest: MiddlewareHandler = async (context, next) => {
 
   const response = await next();
 
-  // Preview hygiene: noindex on *.pages.dev
-  const host = context.request.headers.get('host') || '';
-  if (host.endsWith('.pages.dev')) {
+  // Preview hygiene: keep *.pages.dev out of search results. This is not an
+  // access control — it only asks well-behaved crawlers not to index the page.
+  if (isPagesDevHost(hostname)) {
     response.headers.set('X-Robots-Tag', 'noindex');
   }
 
-  // Security headers baseline
+  // Security headers baseline.
   const isApexMarketing = !derived;
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set(
@@ -111,4 +114,3 @@ export const onRequest: MiddlewareHandler = async (context, next) => {
 
   return response;
 };
-

@@ -47,7 +47,7 @@ function createNavUrl(path: string) {
                 <span class="text-lg font-semibold">{client.name}</span>
               </a>
               <nav class="flex items-center gap-3">
-                {client.nav.map((n) => (
+                {(client.nav ?? []).map((n) => (
                   <a class="text-sm text-gray-700 hover:text-[color:var(--color-primary)]" href={createNavUrl(n.path)}
                     >{n.label}</a
                   >

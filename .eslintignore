@@ -1,0 +1,8 @@
+# Build output — never lint generated or minified code.
+dist
+.astro
+.wrangler
+node_modules
+
+# Symlink to content/clients; the MDX there is content, not source.
+src/content/clientPages

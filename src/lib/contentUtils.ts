@@ -1,72 +1,84 @@
-import path from 'path';
-import fs from 'fs/promises';
-import { fileURLToPath } from 'url';
+import path from 'node:path';
+import fs from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const contentRoot = path.resolve(__dirname, '../../content/clients');
+const clientPagesDir = path.resolve(__dirname, '../content/clientPages');
 
 /**
- * Utility to copy content files from content/clients to src/content/clientPages
- * This replaces the symlink approach which doesn't work in Cloudflare
+ * Make `src/content/clientPages` reflect `content/clients`.
+ *
+ * Astro content collections must live under `src/content`, but tenant content
+ * is authored at the repository root. The repository ships a symlink at
+ * `src/content/clientPages` pointing at `content/clients`, which is all that is
+ * needed on macOS, Linux and the Cloudflare build image.
+ *
+ * This function exists for checkouts where that symlink did not survive —
+ * chiefly Windows without Developer Mode or `core.symlinks=true`, where git
+ * writes a regular file containing the link target instead. In that case the
+ * placeholder file is replaced with a real directory and the content is copied.
+ *
+ * Run explicitly by `pnpm sync:content`, and by `pnpm dev` / `pnpm build`
+ * before Astro starts.
  */
-export async function syncContentFiles() {
-  const srcContentDir = path.resolve(__dirname, '../content');
-  const clientPagesDir = path.resolve(srcContentDir, 'clientPages');
-  
-  // Ensure target directory exists
+export async function syncContentFiles(): Promise<void> {
+  const state = await inspectTarget();
+
+  if (state === 'symlink-to-source') {
+    // Nothing to do: the symlink already exposes the source directory. Copying
+    // here would copy every file onto itself.
+    return;
+  }
+
+  if (state === 'placeholder-file') {
+    // A Windows checkout of the symlink. Replace it with a real directory.
+    await fs.rm(clientPagesDir, { force: true });
+  }
+
   await fs.mkdir(clientPagesDir, { recursive: true });
-  
-  // Read all client directories
-  const clients = await fs.readdir(contentRoot);
-  
+
+  const clients = await fs.readdir(contentRoot, { withFileTypes: true });
   for (const client of clients) {
-    const sourceClientDir = path.join(contentRoot, client);
-    const targetClientDir = path.join(clientPagesDir, client);
-    
-    // Check if it's a directory
-    const stat = await fs.stat(sourceClientDir);
-    if (!stat.isDirectory()) continue;
-    
-    // Ensure client directory exists in target
+    if (!client.isDirectory()) continue;
+
+    const sourceClientDir = path.join(contentRoot, client.name);
+    const targetClientDir = path.join(clientPagesDir, client.name);
     await fs.mkdir(targetClientDir, { recursive: true });
-    
-    // Read all files in client directory
-    const files = await fs.readdir(sourceClientDir);
-    
+
+    const files = await fs.readdir(sourceClientDir, { withFileTypes: true });
     for (const file of files) {
-      const sourcePath = path.join(sourceClientDir, file);
-      const targetPath = path.join(targetClientDir, file);
-      
-      // Skip directories
-      const fileStat = await fs.stat(sourcePath);
-      if (fileStat.isDirectory()) continue;
-      
-      // Copy the file
-      await fs.copyFile(sourcePath, targetPath);
+      if (!file.isFile()) continue;
+      await fs.copyFile(
+        path.join(sourceClientDir, file.name),
+        path.join(targetClientDir, file.name)
+      );
     }
   }
-  
-  console.log('Content files synced from content/clients to src/content/clientPages');
 }
 
-/**
- * Helper to sync content during development
- * Returns a watcher function that can be used in Astro's dev mode
- */
-export function getContentWatcher() {
-  let timeout: NodeJS.Timeout | null = null;
-  
-  // Initial sync
-  syncContentFiles().catch(console.error);
-  
-  return async (event: { type: string; path: string }) => {
-    // Debounce file changes
-    if (timeout) clearTimeout(timeout);
-    
-    timeout = setTimeout(() => {
-      if (event.path.includes('/content/clients/')) {
-        syncContentFiles().catch(console.error);
-      }
-    }, 300);
-  };
+type TargetState =
+  'symlink-to-source' | 'placeholder-file' | 'directory' | 'missing';
+
+async function inspectTarget(): Promise<TargetState> {
+  let stats;
+  try {
+    stats = await fs.lstat(clientPagesDir);
+  } catch {
+    return 'missing';
+  }
+
+  if (stats.isSymbolicLink()) {
+    try {
+      const resolved = await fs.realpath(clientPagesDir);
+      if (resolved === (await fs.realpath(contentRoot)))
+        return 'symlink-to-source';
+    } catch {
+      // Dangling symlink: fall through and rebuild it as a directory.
+    }
+    return 'placeholder-file';
+  }
+
+  if (stats.isDirectory()) return 'directory';
+  return 'placeholder-file';
 }

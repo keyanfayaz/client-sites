@@ -1,7 +1,7 @@
 ---
 import '../styles/base.css';
 import ClientLayout from '../layouts/ClientLayout.astro';
-import { getClientPages } from '../lib/clientPages';
+import { getClientPages, stripExt } from '../lib/clientPages';
 import { clients } from '../lib/clients';
 import { buildNavigation } from '../lib/navigation';
 
@@ -15,11 +15,7 @@ let clientContent = null;
 if (clientSlug && clients[clientSlug] && !unknownClient && Astro.url.pathname === '/') {
   const client = clients[clientSlug];
   const entries = await getClientPages(clientSlug);
-  
-  function stripExt(id: string) {
-    return id.replace(/\.(md|mdx)$/, '');
-  }
-  
+
   // Look for the client's index page
   const entry = entries.find((e) => stripExt(e.id) === `${clientSlug}/index`);
   
@@ -43,6 +39,16 @@ if (clientSlug && clients[clientSlug] && !unknownClient && Astro.url.pathname ==
 // Landing page variables
 const host = Astro.request.headers.get('host') || '';
 const isPreview = host.endsWith('.pages.dev');
+
+// A hostname that resolves to a slug with no registry entry must not quietly
+// serve the marketing landing page: that makes a typo'd DNS record or a
+// half-finished tenant look like a working deployment. Sub-paths already
+// returned the "unknown client" page via [...catchall]; the root now agrees.
+const isUnknownTenant =
+  Boolean(clientSlug) && (unknownClient === true || !clients[clientSlug!]);
+if (isUnknownTenant) {
+  Astro.response.status = 404;
+}
 ---
 
 {clientContent ? (
@@ -57,6 +63,24 @@ const isPreview = host.endsWith('.pages.dev');
       <clientContent.Content />
     </article>
   </ClientLayout>
+) : isUnknownTenant ? (
+  <html lang="en">
+    <head>
+      <meta charset="utf-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <title>Unknown client</title>
+    </head>
+    <body class="min-h-screen bg-slate-50 text-slate-900">
+      <main class="mx-auto max-w-3xl p-6">
+        <h1 class="mb-2 text-2xl font-bold">Unknown client</h1>
+        <p>
+          The client <strong>{clientSlug}</strong> is not configured. If this is a preview or a new
+          client, ensure content exists in <code>/content/clients/{clientSlug}</code> and that the
+          registry in <code>src/lib/clients.ts</code> includes it.
+        </p>
+      </main>
+    </body>
+  </html>
 ) : (
   <html lang="en">
     <head>
