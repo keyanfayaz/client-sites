@@ -12,7 +12,12 @@ export type ClientConfig = {
   name: string;
   logoUrl: string;
   theme: ClientTheme;
-  nav: ClientNavItem[];
+  /**
+   * Optional. Rendered navigation is built from the tenant's MDX files by
+   * buildNavigation(), which overrides whatever is listed here — so this is
+   * documentation of intent, not the source of truth for the menu.
+   */
+  nav?: ClientNavItem[];
 };
 
 export type ClientRegistry = Record<string, ClientConfig>;

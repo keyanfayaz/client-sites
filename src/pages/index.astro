@@ -1,7 +1,7 @@
 ---
 import '../styles/base.css';
 import ClientLayout from '../layouts/ClientLayout.astro';
-import { getClientPages } from '../lib/clientPages';
+import { getClientPages, stripExt } from '../lib/clientPages';
 import { clients } from '../lib/clients';
 import { buildNavigation } from '../lib/navigation';
 
@@ -15,11 +15,7 @@ let clientContent = null;
 if (clientSlug && clients[clientSlug] && !unknownClient && Astro.url.pathname === '/') {
   const client = clients[clientSlug];
   const entries = await getClientPages(clientSlug);
-  
-  function stripExt(id: string) {
-    return id.replace(/\.(md|mdx)$/, '');
-  }
-  
+
   // Look for the client's index page
   const entry = entries.find((e) => stripExt(e.id) === `${clientSlug}/index`);
   
@@ -43,6 +39,23 @@ if (clientSlug && clients[clientSlug] && !unknownClient && Astro.url.pathname ==
 // Landing page variables
 const host = Astro.request.headers.get('host') || '';
 const isPreview = host.endsWith('.pages.dev');
+
+// The demo tenant cards below link via ?as=<slug>. That only resolves where the
+// override is actually honored — localhost, or a *.pages.dev host with
+// ALLOW_TENANT_OVERRIDE=true. On a custom domain it never is, so offering those
+// links there would be advertising dead ends, and would also publish the tenant
+// list on what may be a public apex. Tenants are reached by subdomain instead.
+const canUseOverride = Astro.locals.overrideAllowed === true;
+
+// A hostname that resolves to a slug with no registry entry must not quietly
+// serve the marketing landing page: that makes a typo'd DNS record or a
+// half-finished tenant look like a working deployment. Sub-paths already
+// returned the "unknown client" page via [...catchall]; the root now agrees.
+const isUnknownTenant =
+  Boolean(clientSlug) && (unknownClient === true || !clients[clientSlug!]);
+if (isUnknownTenant) {
+  Astro.response.status = 404;
+}
 ---
 
 {clientContent ? (
@@ -57,6 +70,24 @@ const isPreview = host.endsWith('.pages.dev');
       <clientContent.Content />
     </article>
   </ClientLayout>
+) : isUnknownTenant ? (
+  <html lang="en">
+    <head>
+      <meta charset="utf-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <title>Unknown client</title>
+    </head>
+    <body class="min-h-screen bg-slate-50 text-slate-900">
+      <main class="mx-auto max-w-3xl p-6">
+        <h1 class="mb-2 text-2xl font-bold">Unknown client</h1>
+        <p>
+          The client <strong>{clientSlug}</strong> is not configured. If this is a preview or a new
+          client, ensure content exists in <code>/content/clients/{clientSlug}</code> and that the
+          registry in <code>src/lib/clients.ts</code> includes it.
+        </p>
+      </main>
+    </body>
+  </html>
 ) : (
   <html lang="en">
     <head>
@@ -89,9 +120,11 @@ const isPreview = host.endsWith('.pages.dev');
                   </svg>
                   View on GitHub
                 </a>
-                <a href="#demo-sites" class="inline-flex items-center gap-2 rounded-lg border-2 border-slate-300 px-6 py-3 font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
-                  View the demo tenants
-                </a>
+                {canUseOverride && (
+                  <a href="#demo-sites" class="inline-flex items-center gap-2 rounded-lg border-2 border-slate-300 px-6 py-3 font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
+                    View the demo tenants
+                  </a>
+                )}
               </div>
             </div>
           </div>
@@ -148,6 +181,7 @@ const isPreview = host.endsWith('.pages.dev');
           </div>
         </section>
 
+        {canUseOverride ? (
         <section id="demo-sites" class="mt-12">
           <h2 class="mb-6 text-center text-2xl font-bold text-slate-900">Demo tenants</h2>
           <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -173,11 +207,22 @@ const isPreview = host.endsWith('.pages.dev');
             </a>
           </div>
           <p class="mt-4 text-center text-sm text-slate-500">
-            On this demo host, tenants are selected with <code>?as=&lt;slug&gt;</code>. A production deployment
-            serves them from subdomains instead (e.g. acme.example.com, beta.example.com), resolved
-            automatically from the hostname.
+            On this host, tenants are selected with <code>?as=&lt;slug&gt;</code> because there is no
+            wildcard DNS in front of it. A production deployment serves them from subdomains
+            instead (e.g. acme.example.com, beta.example.com), resolved from the hostname.
           </p>
         </section>
+        ) : (
+        <section id="demo-sites" class="mt-12">
+          <h2 class="mb-3 text-center text-2xl font-bold text-slate-900">Tenants</h2>
+          <p class="mx-auto max-w-2xl text-center text-sm text-slate-600">
+            Tenants on this deployment are served from their own subdomains and resolved from the
+            request hostname. The <code>?as=&lt;slug&gt;</code> override is not available here — it
+            works on <code>localhost</code>, and on a <code>*.pages.dev</code> host only when
+            <code>ALLOW_TENANT_OVERRIDE=true</code> is set.
+          </p>
+        </section>
+        )}
 
         <section class="mt-12 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 p-8 text-white shadow-lg">
           <div class="mx-auto max-w-3xl text-center">

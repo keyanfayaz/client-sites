@@ -1,6 +1,14 @@
 import { getCollection, type CollectionEntry } from 'astro:content';
 
 /**
+ * Content collection ids keep their file extension. Strip it so ids can be
+ * compared against request paths.
+ */
+export function stripExt(id: string): string {
+  return id.replace(/\.(md|mdx)$/, '');
+}
+
+/**
  * Every page a tenant is allowed to serve.
  *
  * `published: false` is filtered here, at the point pages are loaded, rather
@@ -14,6 +22,7 @@ export async function getClientPages(
 ): Promise<CollectionEntry<'clientPages'>[]> {
   return getCollection(
     'clientPages',
-    (entry) => entry.id.startsWith(`${clientSlug}/`) && entry.data.published !== false
+    (entry) =>
+      entry.id.startsWith(`${clientSlug}/`) && entry.data.published !== false
   );
 }

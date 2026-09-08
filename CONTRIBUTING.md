@@ -25,7 +25,9 @@ Open an issue that explains the use case before the solution. Say what you were 
 
 ## Development setup
 
-Requires Node 18.17.0 or higher and pnpm.
+Requires Node 20.3 or higher. pnpm is pinned by the `packageManager` field in
+`package.json`, so `corepack enable` gives you the right version — CI uses the
+same one, which keeps the lockfile format stable.
 
 ```bash
 git clone https://github.com/keyanfayaz/client-sites.git
@@ -34,29 +36,34 @@ pnpm install
 pnpm dev
 ```
 
-No environment variables are needed.
+No environment variables are needed for local development. The `?as=<slug>`
+tenant override is always available on localhost. See the Configuration section of
+the README for the two optional deployment settings.
 
 ### Scripts
 
 - `pnpm dev` — start the dev server
 - `pnpm build` — build for production
-- `pnpm preview` — preview the production build
+- `pnpm preview` — preview the production build with wrangler
+- `pnpm test` — run unit tests (`node:test`)
 - `pnpm typecheck` — run `tsc --noEmit`
 - `pnpm lint` — run ESLint
 - `pnpm format` — run Prettier
 - `pnpm new:client <slug> "Name"` — scaffold a tenant
+- `pnpm sync:content` — reconcile `src/content/clientPages` (Windows fallback)
 
 ## Pull requests
 
 Branch from `main`, then before you open the PR:
 
 ```bash
-pnpm typecheck
 pnpm lint
+pnpm typecheck
+pnpm test
 pnpm build
 ```
 
-CI runs the same install and build on Node 18 and 20, so a green local build usually means a green CI run. The lockfile is committed and CI installs with `--frozen-lockfile`, so if you change dependencies, commit the updated `pnpm-lock.yaml` or CI will fail before it builds.
+CI runs exactly those four on Node 20 and 22, so a green local run usually means a green CI run. The lockfile is committed and CI installs with `--frozen-lockfile`, so if you change dependencies, commit the updated `pnpm-lock.yaml` or CI will fail before it builds.
 
 Check both example tenants still render, since routing changes tend to break one and not the other:
 
@@ -90,11 +97,29 @@ Tenant-specific styling belongs in CSS custom properties rather than a forked co
 
 ## Testing
 
-There are no automated tests yet, and adding them would be a genuinely useful contribution.
+`pnpm test` runs unit tests with the built-in Node test runner. Coverage is
+currently limited to tenant resolution (`tests/tenant.test.ts`), which is where
+the rules that turn an untrusted `Host` header into a tenant slug live. Widening
+coverage is a genuinely useful contribution.
 
-Until then, check by hand that the build succeeds, typecheck and lint pass, both example tenants render, navigation between pages works, and the browser console is clean.
+If you change how a hostname or the `?as=` override maps to a tenant, add a case
+there. The security-relevant expectations are that a custom domain never honors
+`?as=`, and that `*.pages.dev` honors it only when `ALLOW_TENANT_OVERRIDE=true`.
 
-Navigation is worth testing specifically. The `?as=<slug>` override has to survive a page change, so click through the nav rather than only loading one page.
+Beyond the unit tests, check by hand that the build succeeds, both example tenants
+render, navigation between pages works, and the browser console is clean.
+
+Navigation is worth testing specifically. The `?as=<slug>` override has to survive
+a page change, so click through the nav rather than only loading one page.
+
+To exercise hostname routing locally you need the production runtime, because the
+Vite dev server rejects requests whose `Host` header it does not recognise:
+
+```bash
+pnpm build
+pnpm exec wrangler pages dev dist --port 8788
+curl -s -H "Host: acme.example.com" http://127.0.0.1:8788/ | grep '<title>'
+```
 
 ## Documentation
 
