@@ -1,16 +1,21 @@
 # Cloudflare Pages header rules. Header lines must be indented under their path.
-# Frame and CSP headers are set per-request in src/middleware.ts, because they
-# depend on whether the request resolved to a tenant.
+#
+# IMPORTANT: these apply to STATIC ASSET responses only. This app is
+# `output: 'server'`, so every HTML page is produced by a Pages Function and is
+# never decorated by this file. Headers that must cover pages are set in
+# src/middleware.ts, which duplicates the security set below.
+#
+# Rules that match the same path are MERGED, not overridden by specificity — a
+# blanket `Cache-Control` here would concatenate into the rules beneath it and
+# defeat them, so caching is declared per path rather than globally.
 
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Strict-Transport-Security: max-age=15552000; includeSubDomains; preload
   Permissions-Policy: geolocation=(), microphone=(), camera=()
-  Cache-Control: no-cache
 
 # Astro emits content-hashed filenames here, so these are safe to cache forever.
-# Without this the blanket no-cache above would defeat asset caching entirely.
 /_astro/*
   Cache-Control: public, max-age=31536000, immutable
 
