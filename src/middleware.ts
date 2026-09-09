@@ -106,12 +106,35 @@ export const onRequest: MiddlewareHandler = async (context, next) => {
   }
 
   // Security headers baseline.
+  //
+  // These are set here rather than in public/_headers because this app runs as
+  // SSR: every HTML response is produced by a Pages Function, and _headers only
+  // decorates static asset responses. Headers that must cover pages have to be
+  // applied on the response object. _headers still carries the same set for
+  // static assets, which the Function never sees.
   const isApexMarketing = !derived;
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set(
     'Content-Security-Policy',
     isApexMarketing ? "frame-ancestors 'none'" : "frame-ancestors 'self'"
   );
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  response.headers.set('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+
+  // Pages are tenant-specific and may carry a signed-in identity, so they must
+  // not be held in a shared cache. Static assets are unaffected: they are served
+  // by Pages directly and never reach this middleware.
+  response.headers.set('Cache-Control', 'private, no-cache');
+
+  // HSTS only means anything over TLS, and pinning it for `localhost` would
+  // force every other local service on that host to HTTPS too.
+  if (url.protocol === 'https:') {
+    response.headers.set(
+      'Strict-Transport-Security',
+      'max-age=15552000; includeSubDomains; preload'
+    );
+  }
 
   return response;
 };
