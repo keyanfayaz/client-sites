@@ -127,7 +127,7 @@ Update the README when you change behavior it describes. Code examples in the RE
 
 ## Questions
 
-Open a [Discussion](https://github.com/keyanfayaz/client-sites/discussions) or check the [Issues](https://github.com/keyanfayaz/client-sites/issues).
+Check the [Issues](https://github.com/keyanfayaz/client-sites/issues), and open a new one if nothing matches.
 
 ## Code of conduct
 

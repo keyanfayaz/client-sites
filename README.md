@@ -287,4 +287,3 @@ MIT. See [LICENSE](LICENSE).
 ## Links
 
 - [Issues](https://github.com/keyanfayaz/client-sites/issues)
-- [Discussions](https://github.com/keyanfayaz/client-sites/discussions)
